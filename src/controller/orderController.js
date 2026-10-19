@@ -1,0 +1,25 @@
+import { getOrderHistory, insertOrder } from "../models/orderModel.js";
+
+export async function listOrders(req, res, next) {
+  try {
+    res.json({ status: 200, message: "Order history fetched", data: await getOrderHistory(req.user) });
+  } catch (error) { next(error); }
+}
+
+const validId = (id) => Number.isInteger(id) && id > 0 && id <= 2147483647;
+
+export async function createOrder(req, res, next) {
+  const { items } = req.body ?? {};
+  const userId = req.user.id;
+  if (!validId(userId) || !Array.isArray(items) || items.length === 0 || items.length > 100 ||
+      items.some((item) => !item || !validId(item.productId) || !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 999) ||
+      new Set(items.map((item) => item.productId)).size !== items.length) {
+    return res.status(400).json({ status: 400, message: "Provide a valid user and 1–100 different products with quantities from 1 to 999." });
+  }
+  try {
+    const order = await insertOrder(userId, items);
+    res.status(201).json({ status: 201, message: "Products booked successfully", data: order });
+  } catch (error) {
+    next(error);
+  }
+}

@@ -1,0 +1,31 @@
+.order-history { padding: 48px 0; }
+.order-history-heading, .order-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.order-history-heading > div > p:last-child { color: #777b90; line-height: 1.6; }
+.order-history-count { margin: 20px 0; color: #777b90; font-size: 13px; }
+.order-history-summary { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin: 20px 0; padding: 24px; }
+.order-history-summary h2 { margin: 0; font-size: 18px; }
+.order-history-summary p { margin: 8px 0 0; color: #777b90; font-size: 13px; }
+.order-history-summary strong { color: #635bdb; font-size: 28px; }
+.order-history-empty { padding: 40px 20px; border: 1px dashed #d5d3eb; border-radius: 14px; color: #777b90; text-align: center; }
+.order-history-list { display: grid; gap: 20px; }
+.order-history-card { min-width: 0; padding: 24px; }
+.order-card-heading { align-items: start; margin-bottom: 24px; }
+.order-card-heading h2 { margin: 0 0 8px; font-size: 20px; }
+.order-card-heading time, .order-customer { color: #777b90; font-size: 13px; }
+.order-customer { margin: 8px 0 0; overflow-wrap: anywhere; }
+.order-status { padding: 6px 10px; border-radius: 7px; background: #e7f5ef; color: #27633d; font-size: 12px; text-transform: capitalize; }
+.order-table-scroll { overflow-x: auto; }
+.order-items-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.order-items-table th, .order-items-table td { padding: 14px 12px; border-bottom: 1px solid #ececf3; text-align: right; white-space: nowrap; }
+.order-items-table th:first-child { text-align: left; min-width: 160px; white-space: normal; overflow-wrap: anywhere; }
+.order-items-table thead { color: #777b90; background: #f6f7fb; font-size: 12px; }
+.order-items-table tbody th { font-weight: 500; }
+.order-table-caption { text-align: left; color: #777b90; font-size: 12px; padding-bottom: 10px; }
+.order-card-total { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-top: 20px; }
+.order-card-total span { color: #777b90; font-size: 13px; }
+.order-card-total strong { color: #635bdb; font-size: 20px; }
+@media (max-width: 600px) {
+  .order-history { padding: 32px 0; }
+  .order-history-heading { align-items: start; flex-direction: column; gap: 8px; }
+  .order-history-card { padding: 18px; }
+}
