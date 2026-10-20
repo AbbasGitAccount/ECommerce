@@ -17,6 +17,14 @@
 .order-card-heading time, .order-customer { color: #777b90; font-size: 13px; }
 .order-customer { margin: 8px 0 0; overflow-wrap: anywhere; }
 .order-status { padding: 6px 10px; border-radius: 7px; background: #e7f5ef; color: #27633d; font-size: 12px; text-transform: capitalize; }
+.order-status--booked { color: #635bdb; background: #f0efff; }
+.order-status--out_for_delivery { color: #80551c; background: #fff0d6; }
+.order-progress { display: flex; flex-wrap: wrap; gap: 14px; list-style: none; padding: 0; margin: 0 0 24px; }
+.order-progress li { display: flex; align-items: center; gap: 8px; color: #777b90; font-size: 12px; }
+.order-progress li > span { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: #f0f0f5; }
+.order-progress .order-progress-done { color: #5149c4; font-weight: 600; }
+.order-progress-done > span { background: #efedff !important; }
+.order-status-action { width: auto; margin: 0 0 20px; justify-content: center; }
 .order-table-scroll { overflow-x: auto; }
 .order-items-table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .order-items-table th, .order-items-table td { padding: 14px 12px; border-bottom: 1px solid #ececf3; text-align: right; white-space: nowrap; }

@@ -68,7 +68,7 @@ export default function AskData({ isAdmin }) {
           {message.orders?.length > 0 && <ul>{message.orders.map((order) => <li key={order.id}>
             Order #{order.id}: {money(order.total_amount)} · {order.item_count} items · {new Date(order.created_at).toLocaleDateString()}
             {isAdmin && message.scope === "all" && <> · {order.customer_name}{order.customer_username ? ` (@${order.customer_username})` : ""}</>}
-            {order.status && <> · {order.status}</>}
+            {order.status && <> · {order.status.replaceAll("_", " ")}</>}
           </li>)}</ul>}
           {message.customers?.length > 0 && <div className="ask-table-scroll" role="region" aria-label="Customer order totals" tabIndex={0}>
             <table className="ask-customers-table">

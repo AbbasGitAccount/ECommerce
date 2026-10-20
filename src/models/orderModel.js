@@ -1,5 +1,25 @@
 import pool from "../config/db.js";
 
+export async function ensureOrderStatusSchema(database = pool) {
+  await database.query(`DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'orders_status_valid' AND conrelid = 'orders'::regclass) THEN
+      ALTER TABLE orders ADD CONSTRAINT orders_status_valid CHECK (status IN ('booked', 'out_for_delivery', 'delivered'));
+    END IF;
+  END $$`);
+}
+
+export async function updateOrderStatus(id, status) {
+  const previous = { out_for_delivery: "booked", delivered: "out_for_delivery" }[status];
+  if (!previous) throw orderError("Choose Out for delivery or Delivered.", 400);
+  // Compare and update atomically: concurrent requests cannot reverse or skip a step.
+  const result = await pool.query(`UPDATE orders SET status=$2
+    WHERE id=$1 AND status IN ($2, $3) RETURNING id, status`, [id, status, previous]);
+  if (result.rows[0]) return result.rows[0];
+  const existing = await pool.query("SELECT id FROM orders WHERE id=$1", [id]);
+  if (!existing.rows.length) throw orderError("Order not found", 404);
+  throw orderError("Orders must progress from Booked to Out for delivery to Delivered. Refresh orders and try again.");
+}
+
 export async function getOrderHistory(user) {
   const result = await pool.query(`
     SELECT o.id, o.created_at, o.status, o.item_count, o.total_amount, o.delivery_address,

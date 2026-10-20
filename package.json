@@ -9,7 +9,7 @@
     "dev:client": "vite --host 0.0.0.0",
     "build:client": "vite build",
     "start": "node src/Index.js",
-    "test": "node --test src/services/askData.test.js src/models/address.test.js src/services/productMedia.test.js src/services/deployment.test.js"
+    "test": "node --test src/services/askData.test.js src/models/address.test.js src/services/productMedia.test.js src/services/deployment.test.js src/models/orderStatus.test.js"
   },
   "author": "",
   "license": "ISC",

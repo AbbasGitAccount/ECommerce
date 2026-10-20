@@ -1,4 +1,18 @@
-import { getOrderHistory, insertOrder } from "../models/orderModel.js";
+import { getOrderHistory, insertOrder, updateOrderStatus } from "../models/orderModel.js";
+import Joi from "joi";
+
+const statusSchema = Joi.object({ status: Joi.string().valid("out_for_delivery", "delivered").required() }).unknown(false);
+
+export async function changeOrderStatus(req, res, next) {
+  const id = Number(req.params.id);
+  const { value, error } = statusSchema.validate(req.body);
+  if (!/^[1-9]\d*$/.test(req.params.id) || !validId(id) || error || !value) {
+    return res.status(400).json({ message: "Provide a valid order ID and status out_for_delivery or delivered." });
+  }
+  try {
+    res.json({ message: "Order status updated", data: await updateOrderStatus(id, value.status) });
+  } catch (err) { next(err); }
+}
 
 export async function listOrders(req, res, next) {
   try {

@@ -4,11 +4,31 @@ import "./OrderHistory.css";
 
 const price = (value) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(value));
 const date = (value) => new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+const statuses = ["booked", "out_for_delivery", "delivered"];
+const statusLabels = { booked: "Booked", out_for_delivery: "Out for delivery", delivered: "Delivered" };
 
 export default function OrderHistory({ isAdmin = false }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [updatingId, setUpdatingId] = useState(null);
+  const [updateError, setUpdateError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  async function changeStatus(order) {
+    if (updatingId !== null) return;
+    const nextStatus = order.status === "booked" ? "out_for_delivery" : "delivered";
+    setUpdatingId(order.id); setUpdateError(""); setNotice("");
+    try {
+      const response = await fetch(`/api/orders/${order.id}/status`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: nextStatus }),
+      });
+      const result = await readApiResponse(response);
+      if (!response.ok) throw new Error(result.message || "Could not update order status");
+      setOrders((current) => current.map((item) => item.id === order.id ? { ...item, ...result.data } : item));
+      setNotice(`Order #${order.id} is now ${statusLabels[result.data.status]}.`);
+    } catch (err) { setUpdateError(err.message); } finally { setUpdatingId(null); }
+  }
 
   const loadOrders = useCallback(async () => {
     setLoading(true);
@@ -40,9 +60,11 @@ export default function OrderHistory({ isAdmin = false }) {
           <h1 id="order-history-title">Order history</h1>
           <p>{isAdmin ? "View bookings from all customers." : "View your previous bookings and order details."}</p>
         </div>
-        <button className="nav-link" type="button" disabled={loading} onClick={loadOrders}>Refresh orders</button>
+        <button className="nav-link" type="button" disabled={loading || updatingId !== null} onClick={loadOrders}>Refresh orders</button>
       </header>
       {error && <p className="alert error-alert" role="alert">{error}</p>}
+      {updateError && <p className="alert error-alert" role="alert">{updateError}</p>}
+      <p role="status">{notice}</p>
       {isAdmin && !loading && !error && <div className="panel order-history-summary" role="status">
         <div>
           <h2>Total order amount — all users</h2>
@@ -63,8 +85,18 @@ export default function OrderHistory({ isAdmin = false }) {
                   <time dateTime={order.created_at}>{date(order.created_at)}</time>
                   {isAdmin && <p className="order-customer">Customer: {order.customer_name}{order.customer_username ? ` (@${order.customer_username})` : ""}</p>}
                 </div>
-                <span className="order-status">{order.status}</span>
+                <span className={`order-status order-status--${order.status}`}>{statusLabels[order.status] || order.status}</span>
               </header>
+              <ol className="order-progress" aria-label={`Delivery progress for order ${order.id}`}>
+                {statuses.map((status, index) => <li key={status} aria-current={order.status === status ? "step" : undefined}
+                  className={index <= statuses.indexOf(order.status) ? "order-progress-done" : ""}>
+                  <span aria-hidden="true">{index < statuses.indexOf(order.status) ? "✓" : index + 1}</span>{statusLabels[status]}
+                </li>)}
+              </ol>
+              {isAdmin && order.status !== "delivered" && <button className="primary-button order-status-action" type="button"
+                disabled={updatingId !== null} onClick={() => changeStatus(order)} aria-label={`Mark order ${order.id} ${order.status === "booked" ? "out for delivery" : "delivered"}`}>
+                {updatingId === order.id ? "Updating..." : order.status === "booked" ? "Mark out for delivery" : "Mark delivered"}
+              </button>}
               <div className="order-table-scroll" tabIndex={0} role="region" aria-label={`Items in order ${order.id}`}>
                 <table className="order-items-table">
                   <caption className="order-table-caption">Products in order #{order.id}</caption>

@@ -63,3 +63,9 @@ The API initializes schema once per server instance, serialized with a PostgreSQ
 After deployment, open `/api/health`: it must return JSON `{"status":"ok"}`. A JSON 503 indicates a database connection or schema initialization problem; inspect Vercel function logs. A text/HTML 404 means the API function or routing has not been deployed. Frontend API errors now display a readable message instead of a JSON parser exception.
 
 For 503 errors, look for **Database initialization failed:** in the Vercel runtime logs. The log includes a safe error code and troubleshooting hint (no connection URL or password). For example, `DATABASE_CONFIG_MISSING` means the deployed API has no database host or connection URL, `28P01` means the database rejected its credentials, and `42501` means the user lacks schema permissions. After correcting environment variables, redeploy: changing values does not update existing deployments.
+
+## Order delivery status
+
+New orders start as **Booked**. Admins open **Orders**, click **Mark out for delivery**, then **Mark delivered**. Customers see the current status and three-step delivery progress on their own orders; use **Refresh orders** for updates. Delivered orders cannot move backwards and the API does not allow skipping the delivery step. Updates do not change stock, totals, or delivery addresses.
+
+`PATCH /api/orders/:id/status` requires an admin session and a body containing only `status` (`out_for_delivery` or `delivered`). The database accepts only `booked`, `out_for_delivery`, and `delivered`. Updates atomically check the previous status; retrying the same status is safe.

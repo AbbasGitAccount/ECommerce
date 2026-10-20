@@ -2,6 +2,7 @@ import pool from "./db.js";
 import { ensureAddressSchema } from "../models/addressModel.js";
 import { ensureProductMediaSchema, ensureProductStockSchema } from "../models/productModel.js";
 import { databaseConfigurationIssue } from "./databaseOptions.js";
+import { ensureOrderStatusSchema } from "../models/orderModel.js";
 
 let readiness;
 export function initializeDatabase() {
@@ -77,6 +78,7 @@ async function migrate() {
       )
     `);
     await ensureAddressSchema(client);
+    await ensureOrderStatusSchema(client);
     await ensureProductMediaSchema(client);
     await ensureProductStockSchema(client);
     await client.query(`CREATE TABLE IF NOT EXISTS auth_sessions (
