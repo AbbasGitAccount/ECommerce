@@ -1,3 +1,4 @@
+import { sessionQueries } from "../testing/sessionQueries.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import express from "express";
@@ -59,18 +60,18 @@ test("editing without an image preserves it, while explicit null removes it", as
 test("product HTTP routes enforce admin uploads, validate sizes, preserve images, and serve images with access filters", async () => {
   const original = pool.query;
   const calls = [];
-  pool.query = async (sql, values) => {
+  pool.query = sessionQueries(async (sql, values) => {
     calls.push({ sql, values });
     if (sql.startsWith("SELECT id, role")) return { rows: [{ id: values[0], role: values[0] === 1 ? 1 : 2 }] };
     if (sql.startsWith("SELECT image_data")) return { rows: values[0] === 9 ? [{ image_data: parseProductImage(png).data, image_mime: "image/png" }] : [] };
     return { rows: [{ id: 9, ...product, image_url: "/api/product-images/9?v=1" }] };
-  };
-  const cookie = (id) => {
+  });
+  const cookie = async (id) => {
     let result;
-    startSession({ headers: {} }, { cookie(_name, token) { result = `session=${token}`; } }, { id });
+    await startSession({ headers: {} }, { cookie(_name, token) { result = `session=${token}`; } }, { id });
     return result;
   };
-  const admin = cookie(1), customer = cookie(7);
+  const admin = await cookie(1), customer = await cookie(7);
   const app = express(); app.use(express.json({ limit: "3mb" })); app.use("/api", router); app.use(errorHandler);
   const server = app.listen(0, "127.0.0.1");
   await new Promise((resolve) => server.once("listening", resolve));

@@ -1,3 +1,4 @@
+import { sessionQueries } from "../testing/sessionQueries.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import express from "express";
@@ -37,9 +38,9 @@ test("address CRUD always scopes SQL to the authenticated user", async () => {
 
 test("HTTP address routes require login and reject arbitrary owner fields and missing foreign addresses", async () => {
   const original = pool.query;
-  pool.query = async (sql) => ({ rows: sql.startsWith("SELECT id, role") ? [{ id: 7, role: 2 }] : [] });
+  pool.query = sessionQueries();
   let cookie;
-  startSession({ headers: {} }, { cookie(_name, token) { cookie = `session=${token}`; } }, { id: 7 });
+  await startSession({ headers: {} }, { cookie(_name, token) { cookie = `session=${token}`; } }, { id: 7 });
   const app = express(); app.use(express.json()); app.use("/api", router);
   app.use((err, _req, res, _next) => res.status(err.status || 500).json({ message: "Invalid request" }));
   const server = app.listen(0, "127.0.0.1");

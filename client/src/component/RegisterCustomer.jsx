@@ -1,3 +1,4 @@
+import { readApiResponse } from "../api.js";
 import { useState } from "react";
 
 export default function RegisterCustomer({ onBack, onRegistered }) {
@@ -23,7 +24,7 @@ export default function RegisterCustomer({ onBack, onRegistered }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: form.name.trim(), email: form.email.trim(), username: form.username.trim(), password: form.password }),
       });
-      const result = await response.json();
+      const result = await readApiResponse(response);
       if (!response.ok) throw new Error(result.message || "Could not create customer account");
       onRegistered(result.data.username);
     } catch (err) {

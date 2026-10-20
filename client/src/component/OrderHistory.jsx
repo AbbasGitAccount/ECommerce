@@ -1,3 +1,4 @@
+import { readApiResponse } from "../api.js";
 import { useCallback, useEffect, useState } from "react";
 import "./OrderHistory.css";
 
@@ -14,7 +15,7 @@ export default function OrderHistory({ isAdmin = false }) {
     setError("");
     try {
       const response = await fetch("/api/orders");
-      const result = await response.json();
+      const result = await readApiResponse(response);
       if (!response.ok) throw new Error(result.message || "Could not load order history");
       setOrders(result.data);
     } catch (err) {

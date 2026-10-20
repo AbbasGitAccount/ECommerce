@@ -1,3 +1,4 @@
+import { readApiResponse } from "../api.js";
 import { useEffect, useState } from "react";
 import "./Addresses.css";
 
@@ -20,7 +21,7 @@ export default function Addresses() {
 
   async function load() {
     const response = await fetch("/api/addresses");
-    const result = await response.json();
+    const result = await readApiResponse(response);
     if (!response.ok) throw new Error(result.message || "Could not load addresses");
     setAddresses(result.data);
   }
@@ -33,7 +34,7 @@ export default function Addresses() {
       const response = await fetch(editing === null ? "/api/addresses" : `/api/addresses/${editing}`, {
         method: editing === null ? "POST" : "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form),
       });
-      const result = await response.json();
+      const result = await readApiResponse(response);
       if (!response.ok) throw new Error(result.message || "Could not save address");
       setForm(empty); setEditing(null);
       await load(); setNotice("Delivery address saved.");
@@ -43,7 +44,7 @@ export default function Addresses() {
     setBusy(true); setError(""); setNotice("");
     try {
       const response = await fetch(`/api/addresses/${id}`, { method: "DELETE" });
-      const result = await response.json();
+      const result = await readApiResponse(response);
       if (!response.ok) throw new Error(result.message || "Could not remove address");
       if (editing === id) { setEditing(null); setForm(empty); }
       await load(); setNotice("Address removed. Existing orders retain their delivery details.");

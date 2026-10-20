@@ -13,7 +13,6 @@ const errorHandler = (err, _req, res, _next) => {
       : status === 500
         ? "Something went wrong"
         : err.message,
-    ...(status === 500 ? { error: err.message } : {}),
   });
 };
 

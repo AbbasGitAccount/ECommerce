@@ -1,3 +1,4 @@
+import { readApiResponse } from "../api.js";
 import { useCallback, useEffect, useRef, useState } from "react";
 import "./product.css";
 import "./Addresses.css";
@@ -39,7 +40,7 @@ export default function Product({ purchasing = false, onManageAddresses, cart: s
     if (!purchasing) return;
     const controller = new AbortController();
     fetch("/api/addresses", { signal: controller.signal }).then(async (response) => {
-      const result = await response.json();
+      const result = await readApiResponse(response);
       if (!response.ok) throw new Error(result.message || "Could not load delivery addresses");
       setAddresses(result.data);
       setAddressId(result.data[0] ? String(result.data[0].id) : "");
@@ -58,7 +59,7 @@ export default function Product({ purchasing = false, onManageAddresses, cart: s
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ addressId: Number(addressId), items: cart.map((item) => ({ productId: item.id, quantity: item.quantity })) }),
       });
-      const result = await response.json();
+      const result = await readApiResponse(response);
       if (!response.ok) throw new Error(result.message || "Could not book products");
       setCart([]);
       setNotice(`Order #${result.data.id} booked successfully: ${result.data.item_count} items, total ${formatPrice(Number(result.data.total_amount))}.`);
@@ -125,7 +126,7 @@ export default function Product({ purchasing = false, onManageAddresses, cart: s
     setLoadError("");
     try {
       const response = await fetch(purchasing ? "/api/purchasing/products" : "/api/products");
-      const result = await response.json();
+      const result = await readApiResponse(response);
       if (!response.ok) throw new Error(result.message || "Could not load products");
       setProducts(result.data);
     } catch (error) {
@@ -150,7 +151,7 @@ export default function Product({ purchasing = false, onManageAddresses, cart: s
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...values, name: form.name.trim(), category: form.category.trim(), size: form.size.trim(), quantity: Number(form.quantity), price: Number(form.price) }),
       });
-      const result = await response.json();
+      const result = await readApiResponse(response);
       if (!response.ok) throw new Error(result.message || "Could not save product");
       setForm(emptyForm);
       if (imageInput.current) imageInput.current.value = "";

@@ -14,6 +14,10 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD,
   port: Number(process.env.DB_PORT) || 5432,
   ssl: useSsl ? true : undefined,
+  max: 5,
+  connectionTimeoutMillis: 10000,
+  idleTimeoutMillis: 10000,
+  allowExitOnIdle: true,
 });
 
 pool.on("connect", () => {

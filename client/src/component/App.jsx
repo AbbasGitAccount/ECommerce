@@ -1,3 +1,4 @@
+import { readApiResponse } from "../api.js";
 import { useCallback, useEffect, useState } from "react";
 import Login from "./Login.jsx";
 import Product from "./product.jsx";
@@ -6,7 +7,7 @@ import Addresses from "./Addresses.jsx";
 import OrderHistory from "./OrderHistory.jsx";
 async function requestUsers() {
   const response = await fetch("/api/users");
-  const payload = await response.json();
+  const payload = await readApiResponse(response);
   if (!response.ok) throw new Error(payload.message || "Could not load users");
   return payload.data;
 }
@@ -88,7 +89,7 @@ export default function App() {
           role,
         }),
       });
-      const payload = await response.json();
+      const payload = await readApiResponse(response);
       if (!response.ok) throw new Error(payload.message || "Could not add user");
       setUsers((current) => [payload.data, ...current]);
       setName("");

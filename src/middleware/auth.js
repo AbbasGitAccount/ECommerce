@@ -1,35 +1,39 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import pool from "../config/db.js";
 
-const sessions = new Map();
 const sessionAge = 8 * 60 * 60 * 1000;
 const cookieOptions = { httpOnly: true, sameSite: "strict", secure: process.env.NODE_ENV === "production", path: "/" };
 const sessionToken = (req) => (req.headers.cookie ?? "").split(";").map((part) => part.trim()).find((part) => part.startsWith("session="))?.slice(8);
 
-export function startSession(req, res, user) {
-  sessions.delete(sessionToken(req));
-  for (const [token, session] of sessions) if (session.expires <= Date.now()) sessions.delete(token);
+const hash = (token) => createHash("sha256").update(token).digest("hex");
+const validToken = (token) => typeof token === "string" && /^[a-f0-9]{64}$/.test(token);
+
+export async function startSession(req, res, user) {
+  const oldToken = sessionToken(req);
+  if (validToken(oldToken)) await pool.query("DELETE FROM auth_sessions WHERE token_hash=$1", [hash(oldToken)]);
   const token = randomBytes(32).toString("hex");
-  sessions.set(token, { userId: user.id, expires: Date.now() + sessionAge });
+  await pool.query("INSERT INTO auth_sessions (token_hash, user_id, expires_at) VALUES ($1,$2,$3)", [hash(token), user.id, new Date(Date.now() + sessionAge)]);
   res.cookie("session", token, { ...cookieOptions, maxAge: sessionAge });
 }
 
-export function logout(req, res) {
-  sessions.delete(sessionToken(req));
-  res.clearCookie("session", cookieOptions);
-  res.json({ status: 200, message: "Logged out" });
+export async function logout(req, res, next) {
+  try {
+    const token = sessionToken(req);
+    if (validToken(token)) await pool.query("DELETE FROM auth_sessions WHERE token_hash=$1", [hash(token)]);
+    res.clearCookie("session", cookieOptions);
+    res.json({ status: 200, message: "Logged out" });
+  } catch (error) { next(error); }
 }
 
 export function requireRole(...roles) {
   return async (req, res, next) => {
     const token = sessionToken(req);
-    const session = sessions.get(token);
-    if (!session || session.expires <= Date.now()) {
-      sessions.delete(token);
+    if (!validToken(token)) {
       return res.status(401).json({ status: 401, message: "Please log in again" });
     }
     try {
-      const result = await pool.query("SELECT id, role FROM users WHERE id = $1", [session.userId]);
+      const result = await pool.query(`SELECT u.id, u.role FROM auth_sessions s JOIN users u ON u.id=s.user_id
+        WHERE s.token_hash=$1 AND s.expires_at > NOW()`, [hash(token)]);
       const user = result.rows[0];
       if (!user) return res.status(401).json({ status: 401, message: "Please log in again" });
       if (!roles.includes(user.role)) return res.status(403).json({ status: 403, message: "You do not have access to this action" });

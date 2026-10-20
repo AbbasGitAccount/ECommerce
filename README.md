@@ -40,3 +40,22 @@ Products have a nonnegative integer `quantity` (stock). Admins enter stock when 
 New and migrated products default to zero stock. Existing products with no recorded stock become unapproved until an admin enters actual stock and approves them. Existing order history is unchanged.
 
 Checkout locks product rows in ID order, checks stock, and deducts ordered quantities in the same transaction as the order. Insufficient stock rejects the booking without creating an order or changing stock. Selling the last unit sets approval to false automatically. Cart controls cap quantities at available stock, while the backend checks again at booking time.
+
+## Vercel deployment
+
+Deploy the repository root, not just `client` or `dist`. `vercel.json` builds the Vite frontend into `dist` and routes `/api/*` to `api/index.js`, which runs Express. Vite's development proxy is not used in production.
+
+In the Vercel project, set these backend environment variables for both **Production** and **Preview** using the same values as your working local database:
+
+- `DB_HOST`
+- `DB_PORT` (usually 5432)
+- `DB_NAME`
+- `DB_USER`
+- `DB_PASSWORD`
+- `DB_SSL` (`true` for hosted PostgreSQL requiring TLS)
+
+Keep database credentials out of `VITE_*` variables: those are exposed to the browser. The database must be reachable from Vercel. Node.js 22 or 24 is suitable. The framework is Vite, build command `npm run build:client`, output directory `dist`, and root directory is the repository root. Redeploy after changing environment variables.
+
+The API initializes schema once per server instance, serialized with a PostgreSQL advisory lock. Its database user needs permission to create/update this application's tables and trigger functions. Sessions are stored as hashed tokens in `auth_sessions` so authentication works across serverless instances. Old in-memory login sessions are invalidated by this upgrade: log in again. Cookies are secure in production; use HTTPS.
+
+After deployment, open `/api/health`: it must return JSON `{"status":"ok"}`. A JSON 503 indicates a database connection or schema initialization problem; inspect Vercel function logs. A text/HTML 404 means the API function or routing has not been deployed. Frontend API errors now display a readable message instead of a JSON parser exception.

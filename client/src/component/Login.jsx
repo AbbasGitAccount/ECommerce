@@ -1,3 +1,4 @@
+import { readApiResponse } from "../api.js";
 import { useState } from "react";
 import RegisterCustomer from "./RegisterCustomer.jsx";
 
@@ -20,7 +21,7 @@ export default function Login({ onLogin }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: username.trim(), password }),
       });
-      const result = await response.json();
+      const result = await readApiResponse(response);
       if (!response.ok) throw new Error(result.message || "Unable to log in");
       setMessage(`Welcome, ${result.data.username}! You are logged in.`);
       setPassword("");

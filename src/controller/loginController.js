@@ -45,7 +45,7 @@ export const login = async (req, res, next) => {
   try {
     const user = await findLoginUser(credentials.username.trim(), credentials.password);
     if (!user) return respond(res, 401, "Invalid username or password");
-    startSession(req, res, user);
+    await startSession(req, res, user);
     return respond(res, 200, "Login successful", user);
   } catch (error) {
     return next(error);

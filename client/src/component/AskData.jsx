@@ -1,3 +1,4 @@
+import { readApiResponse } from "../api.js";
 import { useEffect, useRef, useState } from "react";
 import "./AskData.css";
 
@@ -31,7 +32,7 @@ export default function AskData({ isAdmin }) {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: value, scope: requestedScope, offset }), signal: abort.current.signal,
       });
-      const result = await response.json();
+      const result = await readApiResponse(response);
       if (!response.ok) throw new Error(result.message || "Could not get an answer.");
       setMessages((current) => [...current, { role: "assistant", text: result.data.answer, orders: result.data.orders, customers: result.data.customers, nextOffset: result.data.nextOffset, question: value, scope: requestedScope }]);
     } catch (err) {

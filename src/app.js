@@ -1,0 +1,25 @@
+import express from "express";
+import cors from "cors";
+import userRoutes from "./routes/userRoutes.js";
+import loginRoutes from "./routes/loginRoutes.js";
+import productRoutes from "./routes/productRoutes.js";
+import orderRoutes from "./routes/orderRoutes.js";
+import askDataRoutes from "./routes/askDataRoutes.js";
+import addressRoutes from "./routes/addressRoutes.js";
+import errorHandler from "./middleware/errorHandler.js";
+
+const app = express();
+app.use("/api", (_req, res, next) => { res.set("Cache-Control", "private, no-store"); next(); });
+app.use("/api/products", express.json({ limit: "3mb" }));
+app.use(express.json());
+app.use(cors());
+app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
+app.use("/api", userRoutes);
+app.use("/api/auth", loginRoutes);
+app.use("/api", productRoutes);
+app.use("/api", orderRoutes);
+app.use("/api", askDataRoutes);
+app.use("/api", addressRoutes);
+app.use((_req, res) => res.status(404).json({ message: "API endpoint not found" }));
+app.use(errorHandler);
+export default app;

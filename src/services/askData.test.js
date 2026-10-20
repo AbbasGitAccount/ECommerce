@@ -1,3 +1,4 @@
+import { sessionQueries } from "../testing/sessionQueries.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import express from "express";
@@ -143,15 +144,15 @@ test("HTTP endpoint enforces sessions, role restrictions, and strict request val
   const originalQuery = pool.query;
   const originalConnect = pool.connect;
   const db = fakeDatabase(totals);
-  pool.query = async (_sql, values) => ({ rows: [{ id: values[0], role: values[0] === 1 ? 1 : 2 }] });
+  pool.query = sessionQueries();
   pool.connect = () => db.connect();
-  const cookie = (id) => {
+  const cookie = async (id) => {
     let value;
-    startSession({ headers: {} }, { cookie(_name, token) { value = `session=${token}`; } }, { id });
+    await startSession({ headers: {} }, { cookie(_name, token) { value = `session=${token}`; } }, { id });
     return value;
   };
-  const customer = cookie(7);
-  const admin = cookie(1);
+  const customer = await cookie(7);
+  const admin = await cookie(1);
   const app = express();
   app.use(express.json());
   app.use("/api", router);
