@@ -47,6 +47,8 @@ Deploy the repository root, not just `client` or `dist`. `vercel.json` builds th
 
 In the Vercel project, set these backend environment variables for both **Production** and **Preview** using the same values as your working local database:
 
+You can instead set **`DATABASE_URL`** (or **`POSTGRES_URL`**) to your PostgreSQL provider's full connection URL. A connection URL takes precedence over separate fields; its TLS parameters are handled by the PostgreSQL driver. Never include quote characters around values pasted into the Vercel environment variable editor. Use your provider's recommended TLS configuration; certificate verification is not disabled by the application.
+
 - `DB_HOST`
 - `DB_PORT` (usually 5432)
 - `DB_NAME`
@@ -59,3 +61,5 @@ Keep database credentials out of `VITE_*` variables: those are exposed to the br
 The API initializes schema once per server instance, serialized with a PostgreSQL advisory lock. Its database user needs permission to create/update this application's tables and trigger functions. Sessions are stored as hashed tokens in `auth_sessions` so authentication works across serverless instances. Old in-memory login sessions are invalidated by this upgrade: log in again. Cookies are secure in production; use HTTPS.
 
 After deployment, open `/api/health`: it must return JSON `{"status":"ok"}`. A JSON 503 indicates a database connection or schema initialization problem; inspect Vercel function logs. A text/HTML 404 means the API function or routing has not been deployed. Frontend API errors now display a readable message instead of a JSON parser exception.
+
+For 503 errors, look for **Database initialization failed:** in the Vercel runtime logs. The log includes a safe error code and troubleshooting hint (no connection URL or password). For example, `DATABASE_CONFIG_MISSING` means the deployed API has no database host or connection URL, `28P01` means the database rejected its credentials, and `42501` means the user lacks schema permissions. After correcting environment variables, redeploy: changing values does not update existing deployments.

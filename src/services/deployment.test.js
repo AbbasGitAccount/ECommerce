@@ -7,6 +7,27 @@ import handler from "../../api/index.js";
 import { startSession, logout } from "../middleware/auth.js";
 import { sessionQueries } from "../testing/sessionQueries.js";
 import { readApiResponse } from "../../client/src/api.js";
+import { databaseOptions, databaseConfigurationIssue, databaseFailureHint } from "../config/databaseOptions.js";
+
+test("database configuration supports provider URLs and separate fields without mixing credentials", () => {
+  const url = "postgresql://example:private-password@db.example.test/shop?sslmode=require";
+  const config = databaseOptions({ DATABASE_URL: url, DB_HOST: "old-host", DB_PASSWORD: "old-password" });
+  assert.equal(config.connectionString, url);
+  assert.equal(config.host, undefined);
+  assert.equal(config.password, undefined);
+  assert.equal(databaseOptions({ POSTGRES_URL: url }).connectionString, url);
+  assert.equal(databaseOptions({ DATABASE_URL: "postgresql://user:secret@db.neon.tech/shop" }).ssl, true);
+  assert.equal(databaseOptions({ DB_HOST: "db.example.test", DB_SSL: "true" }).ssl, true);
+  assert.equal(databaseOptions({ DB_HOST: "localhost", DB_SSL: "false" }).ssl, false);
+  assert.equal(databaseOptions({ DB_HOST: "host", DB_USER: "user", DB_NAME: "shop", DB_PASSWORD: "secret" }).database, "shop");
+  assert.equal(databaseConfigurationIssue({ VERCEL: "1" }), "DATABASE_CONFIG_MISSING");
+  assert.equal(databaseConfigurationIssue({ DATABASE_URL: "not a database URL" }), "DATABASE_URL_INVALID");
+  assert.equal(databaseConfigurationIssue({ DATABASE_URL: "https://db.example.test/shop" }), "DATABASE_URL_INVALID");
+  assert.equal(databaseConfigurationIssue({ DATABASE_URL: url }), null);
+  const hint = databaseFailureHint({ code: "28P01", message: `Password failed: ${url}` });
+  assert.match(hint, /authentication failed/);
+  assert.ok(!hint.includes("private-password"));
+});
 
 test("frontend response reader handles error pages and malformed JSON without showing parser errors", async () => {
   await assert.rejects(readApiResponse(new Response("The page could not be found", { status: 404 })), /HTTP 404/);

@@ -1,6 +1,7 @@
 import pool from "./db.js";
 import { ensureAddressSchema } from "../models/addressModel.js";
 import { ensureProductMediaSchema, ensureProductStockSchema } from "../models/productModel.js";
+import { databaseConfigurationIssue } from "./databaseOptions.js";
 
 let readiness;
 export function initializeDatabase() {
@@ -9,6 +10,8 @@ export function initializeDatabase() {
 }
 
 async function migrate() {
+  const issue = databaseConfigurationIssue(process.env);
+  if (issue) throw Object.assign(new Error("Database configuration is missing or invalid"), { code: issue });
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
