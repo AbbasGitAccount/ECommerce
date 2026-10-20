@@ -1,4 +1,7 @@
 .order-history { padding: 48px 0; }
+.order-delivery { margin-top: 20px; border-top: 1px solid #ececf3; padding-top: 16px; }
+.order-delivery h3 { font-size: 14px; }
+.order-delivery address { font-style: normal; font-size: 14px; line-height: 1.7; overflow-wrap: anywhere; }
 .order-history-heading, .order-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
 .order-history-heading > div > p:last-child { color: #777b90; line-height: 1.6; }
 .order-history-count { margin: 20px 0; color: #777b90; font-size: 13px; }

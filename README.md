@@ -20,3 +20,23 @@ The frontend proxies `/api` to the backend port configured in `src/.env`. Keep t
 - `npm run build:client` creates the frontend production build in `dist`.
 
 See [Ask Your Data](ASK_YOUR_DATA.md) for supported questions and access rules. Customers query their own orders; admins may query all users. No AI API key is required.
+
+## Delivery addresses
+
+Use **Delivery addresses** after logging in to add, edit, or remove your addresses. Each user manages only their own addresses through `/api/addresses` (GET/POST) and `/api/addresses/:id` (PUT/DELETE). Recipient, phone, street, city, state/region, postal code, and country are required; address line 2 is optional.
+
+Startup creates `user_addresses`, its user foreign key and index, and adds a nullable `orders.delivery_address` JSONB column for historical compatibility. Existing orders remain unchanged. New bookings require an `addressId` belonging to the logged-in customer. The order stores a delivery-address snapshot so changing or deleting the saved address cannot alter existing orders. The **Orders** page displays these delivery details; admins can view them on all orders.
+
+## Product sizes and images
+
+Admins can enter an optional size (up to 50 characters, such as M, 42, or 500 ml) and upload one JPEG, PNG, or WebP image up to 2 MB when adding or editing a product. Size is a single product attribute; separate size variants can be created as separate products. Uploaded images are stored in PostgreSQL and served through an authenticated image endpoint. Customers can access only images of approved products.
+
+Editing without choosing another image preserves the current image; **Remove image** restores the original package placeholder. Products with no upload, or an image that fails to load, use the original placeholder. Sizes appear on product cards and in the cart, and are copied into order items for history. Startup adds the required product media and order-item size columns while preserving existing products.
+
+## Product stock
+
+Products have a nonnegative integer `quantity` (stock). Admins enter stock when adding or editing a product. Zero stock forces `isApproved` to false in the API and through a PostgreSQL trigger. Increasing stock does not automatically approve the product; the admin must approve it. Purchasing shows only approved products with positive stock.
+
+New and migrated products default to zero stock. Existing products with no recorded stock become unapproved until an admin enters actual stock and approves them. Existing order history is unchanged.
+
+Checkout locks product rows in ID order, checks stock, and deducts ordered quantities in the same transaction as the order. Insufficient stock rejects the booking without creating an order or changing stock. Selling the last unit sets approval to false automatically. Cart controls cap quantities at available stock, while the backend checks again at booking time.

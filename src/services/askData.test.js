@@ -11,6 +11,10 @@ test("recognizes supported questions and refuses SQL instructions", () => {
   assert.equal(interpretQuestion("How many orders do I have?"), "count");
   assert.equal(interpretQuestion("What is my average order amount?"), "average");
   assert.equal(interpretQuestion("Show my recent orders"), "recent");
+  assert.equal(interpretQuestion("How many customers are there?"), "customerCount");
+  assert.equal(interpretQuestion("Show all customers"), "customers");
+  assert.equal(interpretQuestion("Show order totals by customer"), "customers");
+  assert.equal(interpretQuestion("Show all orders"), "orders");
   assert.equal(interpretQuestion("DROP TABLE orders; total amount"), null);
 });
 
@@ -77,8 +81,55 @@ test("empty orders produce zero and recent orders are bounded and scoped", async
   const recent = await answerOrderQuestion({ id: 7, role: 2 }, { question: "Show my recent orders", scope: "mine" }, db);
   assert.deepEqual(recent.orders, []);
   assert.match(recent.answer, /no orders/);
-  assert.match(db.calls.find((call) => call.values).sql, /LIMIT 5/);
-  assert.deepEqual(db.calls.find((call) => call.values).values, [7]);
+  assert.match(db.calls.find((call) => call.values).sql, /LIMIT \$2/);
+  assert.deepEqual(db.calls.find((call) => call.values).values, [7, 5, 0]);
+});
+
+test("admin customer count excludes admins and customer totals include customers with no orders", async () => {
+  const countDb = fakeDatabase([{ customer_count: "3" }]);
+  const count = await answerOrderQuestion({ id: 1, role: 1 }, { question: "How many customers are there?", scope: "all" }, countDb);
+  assert.match(count.answer, /3 customer accounts/);
+  assert.deepEqual(countDb.calls.find((call) => call.values).values, [2]);
+  const db = fakeDatabase([{ id: 7, name: "No orders", username: "customer", order_count: "0", total_amount: "0" }]);
+  const result = await answerOrderQuestion({ id: 1, role: 1 }, { question: "Show order totals by customer", scope: "all" }, db);
+  assert.equal(result.customers[0].total_amount, "0");
+  const query = db.calls.find((call) => call.values);
+  assert.match(query.sql, /LEFT JOIN orders/);
+  assert.match(query.sql, /COUNT\(o.id\)/);
+  assert.deepEqual(query.values, [2, 0]);
+  assert.equal(result.nextOffset, null);
+});
+
+test("customer reports require admin all scope even when called directly", async () => {
+  const db = fakeDatabase([]);
+  for (const user of [{ id: 7, role: 2 }, { id: 1, role: 1 }]) {
+    await assert.rejects(answerOrderQuestion(user, { question: "Show customers", scope: "mine" }, db), (error) => [400, 403].includes(error.status));
+  }
+  await assert.rejects(answerOrderQuestion({ id: 7, role: 2 }, { question: "How many customers are there?", scope: "all" }, db), { status: 403 });
+  assert.equal(db.calls.length, 0);
+});
+
+test("customer and order lists paginate with parameterized offsets and keep own orders scoped", async () => {
+  const rows = Array.from({ length: 51 }, (_, id) => ({ id }));
+  for (const question of ["Show all customers", "Show all orders"]) {
+    const db = fakeDatabase(rows);
+    const result = await answerOrderQuestion({ id: 1, role: 1 }, { question, scope: "all", offset: 50 }, db);
+    assert.equal((result.customers || result.orders).length, 50);
+    assert.equal(result.nextOffset, 100);
+    const query = db.calls.find((call) => call.values);
+    assert.equal(query.values.at(-1), 50);
+    assert.match(query.sql, /OFFSET \$/);
+  }
+  const ownDb = fakeDatabase([]);
+  await answerOrderQuestion({ id: 7, role: 2 }, { question: "Show my orders", scope: "mine", offset: 50 }, ownDb);
+  assert.deepEqual(ownDb.calls.find((call) => call.values).values, [7, 51, 50]);
+});
+
+test("admin natural question for all customers can calculate total spending", async () => {
+  const db = fakeDatabase(totals);
+  const result = await answerOrderQuestion({ id: 1, role: 1 }, { question: "What is the total order amount for all customers?", scope: "all" }, db);
+  assert.match(result.answer, /\$230\.00/);
+  assert.deepEqual(db.calls.find((call) => call.values).values, [null]);
 });
 
 test("database failure rolls back and releases the connection", async () => {
@@ -104,6 +155,7 @@ test("HTTP endpoint enforces sessions, role restrictions, and strict request val
   const app = express();
   app.use(express.json());
   app.use("/api", router);
+  app.use((error, _req, res, _next) => res.status(error.status || 500).json({ message: "Invalid request" }));
   const server = app.listen(0, "127.0.0.1");
   await new Promise((resolve) => server.once("listening", resolve));
   const request = (body, session) => fetch(`http://127.0.0.1:${server.address().port}/api/ask-data`, {
@@ -112,7 +164,7 @@ test("HTTP endpoint enforces sessions, role restrictions, and strict request val
   try {
     assert.equal((await request({ question: "My total order amount" })).status, 401);
     assert.equal((await request({ question: "My total order amount", scope: "all" }, customer)).status, 403);
-    for (const body of [null, {}, { question: "x" }, { question: "x".repeat(501) }, { question: "My total amount", userId: 1 }, { question: "My total amount", scope: "invalid" }]) {
+    for (const body of [null, {}, { question: "x" }, { question: "x".repeat(501) }, { question: "My total amount", userId: 1 }, { question: "My total amount", scope: "invalid" }, { question: "Show my orders", offset: -1 }, { question: "Show my orders", offset: 1.5 }, { question: "Show my orders", offset: 1000001 }]) {
       assert.equal((await request(body, customer)).status, 400);
     }
     const own = await request({ question: "My total order amount" }, customer);

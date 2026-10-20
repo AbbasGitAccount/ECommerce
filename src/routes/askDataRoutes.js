@@ -6,12 +6,13 @@ import { answerOrderQuestion } from "../services/askData.js";
 const schema = Joi.object({
   question: Joi.string().trim().min(3).max(500).pattern(/^[^\x00-\x1f\x7f]+$/).required(),
   scope: Joi.string().valid("mine", "all").default("mine"),
+  offset: Joi.number().integer().min(0).max(1000000).default(0),
 }).unknown(false);
 
 const router = Router();
 router.post("/ask-data", requireRole(1, 2), async (req, res) => {
   const { error, value } = schema.validate(req.body);
-  if (error || !value) return res.status(400).json({ message: "Provide a question of 3–500 characters and scope mine or all. No other fields are accepted." });
+  if (error || !value) return res.status(400).json({ message: "Provide a question of 3–500 characters, scope mine or all, and an optional integer offset from 0 to 1000000. No other fields are accepted." });
   try {
     res.json({ data: await answerOrderQuestion(req.user, value) });
   } catch (err) {

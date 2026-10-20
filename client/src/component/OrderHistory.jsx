@@ -69,7 +69,7 @@ export default function OrderHistory({ isAdmin = false }) {
                   <caption className="order-table-caption">Products in order #{order.id}</caption>
                   <thead><tr><th scope="col">Product</th><th scope="col">Quantity</th><th scope="col">Unit price</th><th scope="col">Subtotal</th></tr></thead>
                   <tbody>{order.items.map((item) => <tr key={item.id}>
-                    <th scope="row">{item.product_name}</th>
+                    <th scope="row">{item.product_name}{item.product_size && <small> · Size: {item.product_size}</small>}</th>
                     <td>{item.quantity}</td><td>{price(item.unit_price)}</td><td>{price(item.subtotal)}</td>
                   </tr>)}</tbody>
                 </table>
@@ -78,6 +78,14 @@ export default function OrderHistory({ isAdmin = false }) {
                 <span>{order.items.length} {order.items.length === 1 ? "product" : "products"} &middot; {order.item_count} {order.item_count === 1 ? "item" : "items"}</span>
                 <strong>Total: {price(order.total_amount)}</strong>
               </footer>
+              {order.delivery_address && <div className="order-delivery">
+                <h3>Delivery address</h3>
+                <address>{order.delivery_address.recipient}<br />{order.delivery_address.line1}<br />
+                  {order.delivery_address.line2 && <>{order.delivery_address.line2}<br /></>}
+                  {order.delivery_address.city}, {order.delivery_address.state} {order.delivery_address.postal_code}<br />
+                  {order.delivery_address.country}<br />{order.delivery_address.phone}
+                </address>
+              </div>}
             </article>
           ))}
         </div>

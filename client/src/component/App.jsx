@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import Login from "./Login.jsx";
 import Product from "./product.jsx";
 import AskData from "./AskData.jsx";
+import Addresses from "./Addresses.jsx";
+import OrderHistory from "./OrderHistory.jsx";
 async function requestUsers() {
   const response = await fetch("/api/users");
   const payload = await response.json();
@@ -21,6 +23,7 @@ export default function App() {
   const [notice, setNotice] = useState("");
   const [page, setPage] = useState("products");
   const [currentUser, setCurrentUser] = useState(null);
+  const [cart, setCart] = useState([]);
   const [role, setRole] = useState(2);
   const isAdmin = currentUser?.role === 1;
   const isCustomer = currentUser?.role === 2;
@@ -42,6 +45,7 @@ export default function App() {
   }, [currentUser, page, loadUsers]);
 
   function handleLogin(user) {
+    setCart([]);
     setCurrentUser(user);
     setPage(user.role === 1 ? "products" : "purchasing");
   }
@@ -55,6 +59,7 @@ export default function App() {
       return;
     }
     setCurrentUser(null);
+    setCart([]);
     setUsers([]);
     setName("");
     setEmail("");
@@ -112,6 +117,8 @@ export default function App() {
           {isAdmin && <button className={page === "products" ? "nav-link active" : "nav-link"} type="button" onClick={() => setPage("products")}>Products</button>}
           {isCustomer && <button className={page === "purchasing" ? "nav-link active" : "nav-link"} type="button" onClick={() => setPage("purchasing")}>Purchasing</button>}
           <button className={page === "ask-data" ? "nav-link active" : "nav-link"} type="button" onClick={() => setPage("ask-data")}>Ask Your Data</button>
+          <button className={page === "addresses" ? "nav-link active" : "nav-link"} type="button" onClick={() => setPage("addresses")}>Delivery addresses</button>
+          <button className={page === "orders" ? "nav-link active" : "nav-link"} type="button" onClick={() => setPage("orders")}>Orders</button>
           <button className="nav-link" type="button" onClick={handleLogout}>Log out</button>
         </nav>}
       </header>
@@ -119,10 +126,14 @@ export default function App() {
         <Login onLogin={handleLogin} />
       ) : page === "ask-data" ? (
         <AskData key={currentUser.id} isAdmin={isAdmin} />
+      ) : page === "addresses" ? (
+        <Addresses key={currentUser.id} />
+      ) : page === "orders" ? (
+        <OrderHistory key={currentUser.id} isAdmin={isAdmin} />
       ) : isAdmin && page === "products" ? (
         <Product />
       ) : isCustomer ? (
-        <Product key="purchasing" purchasing />
+        <Product key="purchasing" purchasing cart={cart} onCartChange={setCart} onManageAddresses={() => setPage("addresses")} />
       ) : (
         <>
       <section className="intro" id="top">

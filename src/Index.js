@@ -6,6 +6,9 @@ import loginRoutes from "./routes/loginRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import askDataRoutes from "./routes/askDataRoutes.js";
+import addressRoutes from "./routes/addressRoutes.js";
+import { ensureAddressSchema } from "./models/addressModel.js";
+import { ensureProductMediaSchema, ensureProductStockSchema } from "./models/productModel.js";
 import errorHandler from "./middleware/errorHandler.js";
 
 const app = express();
@@ -13,6 +16,7 @@ const port = Number(process.env.PORT) || 3001;
 
 //middleware 
 
+app.use("/api/products", express.json({ limit: "3mb" }));
 app.use(express.json());
 app.use(cors());
 
@@ -22,6 +26,7 @@ app.use("/api/auth", loginRoutes);
 app.use("/api", productRoutes);
 app.use("/api", orderRoutes);
 app.use("/api", askDataRoutes);
+app.use("/api", addressRoutes);
 
 //error handling//
 app.use(errorHandler);
@@ -99,7 +104,10 @@ async function startServer() {
         UNIQUE (order_id, product_id)
       )
     `);
-    console.log("Users, products, and order tables are ready");
+    await ensureAddressSchema();
+    await ensureProductMediaSchema();
+    await ensureProductStockSchema();
+    console.log("Users, products, orders, and delivery address tables are ready");
     app.listen(port, () => console.log(`Server is running on port: ${port}`));
   } catch (error) {
     console.error("Could not initialize the database tables:", error.message);
